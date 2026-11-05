@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4ed8">
+<title>LexCampus</title>
+<style>
+  :root {
+    --blue: #1d4ed8;
+    --blue-dark: #1e3a8a;
+    --red: #d0121e;
+    --ink: #0e1b3d;
+    --muted: #4b5b7c;
+    --paper: #f3f6fb;
+    --line: #d5deee;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  button, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .app { max-width: 720px; margin: 0 auto; padding: 16px 16px 108px; }
+  header.top {
+    background: var(--blue);
+    color: var(--white);
+    padding: 18px 16px 16px;
+  }
+  header.top .brand { margin: 0; font-size: 13px; letter-spacing: 0.16em; font-weight: 700; }
+  header.top p { margin: 6px 0 0; font-size: 14px; opacity: 0.92; }
+  h1 { font-size: 30px; line-height: 1.1; margin: 4px 0 8px; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .kicker { color: var(--red); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin: 0; }
+  .card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    margin: 0 0 12px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .area {
+    text-align: left;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 12px;
+    min-height: 92px;
+  }
+  .area strong { display: block; margin-bottom: 4px; }
+  .area span { color: var(--muted); font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip, .option, .nav button, .speak, .primary, .ghost {
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--white);
+    padding: 10px 14px;
+    min-height: 44px;
+  }
+  .chip.on, .option.good, .primary {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--white);
+  }
+  .option.bad { background: #fff1f2; border-color: var(--red); color: var(--red); }
+  .speak { background: var(--red); border-color: var(--red); color: var(--white); }
+  .ghost { background: transparent; }
+  .phrase { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+  .stress { color: var(--blue-dark); font-weight: 600; }
+  nav.bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--white);
+    border-top: 1px solid var(--line);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    z-index: 5;
+  }
+  nav.bar button {
+    border: 0;
+    background: transparent;
+    border-radius: 12px;
+    min-height: 52px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  nav.bar button.on { color: var(--blue); background: #e8efff; }
+  textarea {
+    width: 100%;
+    min-height: 96px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    background: var(--white);
+  }
+  .check { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; }
+  .barline { height: 8px; background: #e4eaf6; border-radius: 99px; overflow: hidden; }
+  .barline span { display: block; height: 100%; background: var(--red); }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<header class="top">
+  <p class="brand">LEXCAMPUS</p>
+  <p>Frases de inglés para la escuela. El avance se guarda en este celular.</p>
+</header>
+<main class="app" id="app"></main>
+<nav class="bar" id="nav"></nav>
+<script>
+const AREAS = [
+  ["salon", "Salón de clases", "Instrucciones, rutina y trabajo entre pupitres."],
+  ["docentes", "Sala de maestros", "Planeación, retroalimentación y vida del claustro."],
+  ["alumnos", "Vida del alumno", "Seguimiento, exámenes y trabajo en equipo."],
+  ["oficina", "Oficina escolar", "Formatos, juntas, oficios y registros."],
+  ["control", "Control escolar", "Inscripción, boletas, asistencia y horarios."],
+  ["disciplina", "Disciplina", "Normas, advertencias y clima del salón."]
+];
+const PHRASES = [
+  ["raise-hand","salon","raise your hand","levantar la mano","Please raise your hand if you know the answer.","RAISE your HAND",["lift your hand","rise your hand","put your hand"]],
+  ["pay-attention","salon","pay attention","prestar atención","Pay attention while I write the steps on the board.","pay at-TEN-tion",["give attention","make attention","put attention"]],
+  ["open-books","salon","open your books","abran sus libros","Open your books at page forty-two.","O-pen your BOOKS",["unfold your books","start your books","open the copybooks"]],
+  ["take-notes","salon","take notes","tomar apuntes","Take notes on the examples, not on every word.","TAKE NOTES",["do notes","make the notes","capture notes"]],
+  ["work-pairs","salon","work in pairs","trabajar en parejas","Work in pairs and compare your answers.","work in PAIRS",["work by pairs","work on pairs","make pairs"]],
+  ["hand-in","salon","hand in your homework","entregar la tarea","Hand in your homework before the bell.","HAND in your HOME-work",["give your homework","deliver your homework","pass your homework"]],
+  ["copy-board","salon","copy from the board","copiar del pizarrón","Copy from the board and leave a line between items.","CO-py from the BOARD",["copy of the board","copy the blackboard","take from the board"]],
+  ["ask-question","salon","ask a question","hacer una pregunta","Ask a question if the instruction is not clear.","ASK a QUES-tion",["make a question","do a question","say a question"]],
+  ["give-feedback","docentes","give feedback","dar retroalimentación","Give feedback on the draft before Friday.","give FEED-back",["make feedback","do feedback","put feedback"]],
+  ["mark-homework","docentes","mark homework","calificar la tarea","I still have to mark homework for group 2B.","MARK HOME-work",["note the homework","make homework marks","qualify homework"]],
+  ["set-homework","docentes","set homework","dejar tarea","Don't set homework on the day of the exam.","SET HOME-work",["put homework","leave homework","make homework"]],
+  ["plan-lesson","docentes","plan a lesson","planear una clase","Plan a lesson around one set of phrases, not ten isolated words.","PLAN a LES-son",["make a class plan","planate a lesson","do a planning"]],
+  ["take-attendance","docentes","take attendance","pasar lista","Take attendance before you start the warm-up.","take at-TEN-dance",["make attendance","pass attendance","do the assistance"]],
+  ["cover-class","docentes","cover a class","cubrir una clase","Can you cover a class for me third period?","COV-er a CLASS",["tape a class","replace the class","make a cover"]],
+  ["meet-deadline","docentes","meet a deadline","cumplir una fecha límite","We need to meet a deadline for the grade report.","MEET a DEAD-line",["complete a deadline","catch a deadline","do a deadline"]],
+  ["hold-meeting","docentes","hold a meeting","tener una junta","We'll hold a meeting in the staff room at four.","HOLD a MEE-ting",["make a meeting","do a meeting","celebrate a meeting"]],
+  ["fall-behind","alumnos","fall behind","quedarse atrás","Some students fall behind when they miss the lab.","fall be-HIND",["stay behind","fall back","go behind"]],
+  ["catch-up","alumnos","catch up","ponerse al corriente","Stay after class if you need to catch up.","CATCH up",["reach up","catch the level","take up"]],
+  ["do-best","alumnos","do your best","dar lo mejor de ti","Do your best on the oral, even if you feel nervous.","do your BEST",["make your best","do your better","put your best"]],
+  ["miss-class","alumnos","miss a class","faltar a una clase","If you miss a class, check the phrase notebook.","MISS a CLASS",["lose a class","fault a class","miss the assistance"]],
+  ["pass-exam","alumnos","pass an exam","aprobar un examen","You can pass an exam by using whole phrases, not word by word.","PASS an ex-AM",["approve an exam","win an exam","pass of an exam"]],
+  ["revise-test","alumnos","revise for a test","repasar para un examen","Revise for a test with the phrases from this week.","re-VISE for a TEST",["revise a test","study the exam paper","review of a test"]],
+  ["ask-help","alumnos","ask for help","pedir ayuda","Ask for help before you fall behind.","ASK for HELP",["ask a help","demand help","ask help"]],
+  ["work-team","alumnos","work as a team","trabajar en equipo","Work as a team and give one answer for the group.","work as a TEAM",["work like a team","make a team","work in team"]],
+  ["fill-form","oficina","fill in a form","llenar un formato","Please fill in a form at the front desk.","FILL in a FORM",["fill a format","complete a formality","fill the paper"]],
+  ["book-meeting","oficina","book a meeting","agendar una junta","Book a meeting with the coordinator before Thursday.","BOOK a MEE-ting",["reserve a meeting","apart a meeting","date a meeting"]],
+  ["file-report","oficina","file a report","archivar un informe","File a report after the parent conference.","FILE a re-PORT",["archive a report","save a report","file the inform"]],
+  ["send-memo","oficina","send a memo","enviar un memorándum","The office will send a memo about the new timetable.","SEND a MEM-o",["send a memory","send an aviso","mail a note"]],
+  ["keep-record","oficina","keep a record","llevar un registro","Keep a record of every parent phone call.","KEEP a REC-ord",["have a record","guard a record","save a register"]],
+  ["sign-document","oficina","sign a document","firmar un documento","Both parents need to sign a document for the trip.","SIGN a DOC-u-ment",["firm a document","signate a paper","make a signature"]],
+  ["set-deadline","oficina","set a deadline","fijar una fecha límite","Set a deadline and write it on the noticeboard.","SET a DEAD-line",["put a deadline","fix a date limit","mark a deadline"]],
+  ["update-records","oficina","update the records","actualizar los registros","Update the records when a student changes group.","up-DATE the REC-ords",["actualize the records","modernize the records","refresh the archives"]],
+  ["enroll-student","control","enroll a student","inscribir a un alumno","We can enroll a student only with the full file.","en-ROLL a STU-dent",["inscribe a student","matriculate a pupil","enter a student"]],
+  ["transfer-student","control","transfer a student","transferir a un alumno","Control escolar can transfer a student to another campus.","TRANS-fer a STU-dent",["translate a student","move a pupil","change a student"]],
+  ["issue-card","control","issue a report card","emitir una boleta","We issue a report card at the end of each term.","ISS-ue a re-PORT card",["emit a report card","issue a boleta","make the qualifications"]],
+  ["check-attendance","control","check attendance","revisar la asistencia","Check attendance before you close the week.","CHECK at-TEN-dance",["revise assistance","check the assistance","control attendance"]],
+  ["record-grade","control","record a grade","registrar una calificación","Record a grade the same day you mark the quiz.","re-CORD a GRADE",["capture a grade","put a grade","register the note"]],
+  ["close-term","control","close the term","cerrar el periodo","We close the term on the last Friday of November.","CLOSE the TERM",["shut the term","close the cycle","finish the period"]],
+  ["publish-timetable","control","publish the timetable","publicar el horario","Publish the timetable before the first day of term.","PUB-lish the TIME-ta-ble",["public the timetable","publish the horary","upload the times"]],
+  ["verify-documents","control","verify documents","verificar documentos","Verify documents before you enroll a student.","VER-i-fy DOC-u-ments",["validate the papers","confirm the files","check the documentation"]],
+  ["follow-rules","disciplina","follow the rules","seguir el reglamento","Follow the rules even when the teacher steps out.","FOL-low the RULES",["follow the norms","chase the rules","complete the rules"]],
+  ["give-warning","disciplina","give a warning","dar una advertencia","Give a warning first. Don't send the student out yet.","give a WARN-ing",["make a warning","put a warning","give an advertence"]],
+  ["disrupt-class","disciplina","disrupt the class","interrumpir la clase","Phones disrupt the class when they are on the desk.","dis-RUPT the CLASS",["unorder the class","break the lesson","disorganize the class"]],
+  ["stay-after","disciplina","stay after school","quedarse después de clases","You will stay after school if the work is not in.","STAY after SCHOOL",["stay after the school","remain in the exit","stay post-school"]],
+  ["call-parents","disciplina","call the parents","llamar a los padres","If it happens again, we call the parents.","CALL the PAR-ents",["call the fathers","phone the family","speak the parents"]],
+  ["noise-down","disciplina","keep the noise down","bajar el ruido","Keep the noise down in the corridor.","keep the NOISE DOWN",["low the noise","put the noise down","keep the volume"]],
+  ["set-example","disciplina","set an example","dar el ejemplo","Teachers set an example when they arrive on time.","SET an ex-AM-ple",["give the example","put an example","leave an example"]],
+  ["lose-privilege","disciplina","lose a privilege","perder un privilegio","You lose a privilege if you skip the line twice.","LOSE a PRIV-i-lege",["lose a permission","miss a privilege","drop a benefit"]]
+];
+const LINKS = [
+  ["and","y","suma otra idea"],
+  ["but","pero","cambia la idea"],
+  ["or","o","da otra opción"],
+  ["so","así que","dice el resultado"],
+  ["because","porque","da la razón"],
+  ["if","si","pone una condición"],
+  ["when","cuando","dice el momento"],
+  ["first","primero","marca el inicio"],
+  ["then","luego","marca el siguiente paso"],
+  ["before","antes de","dice lo que va primero"],
+  ["after","después de","dice lo que va después"],
+  ["so that","para que","dice para qué"]
+];
+const CAN = [
+  ["hear","Reconozco una frase de la escuela cuando la escucho."],
+  ["choose","Elijo la frase que sí se dice, no la traducción palabra por palabra."],
+  ["join","Uno dos frases con and, but, because o so."],
+  ["use","Puedo armar una oración que usaría en el salón o en la oficina."]
+];
+const KEY = "lexcampus-progress-v1";
+const TABS = [["home","Inicio"],["frases","Frases"],["unir","Unir"],["oir","Oír"],["yo","Yo"]];
+function phrase(id) { return PHRASES.find((item) => item[0] === id); }
+function inArea(area) { return PHRASES.filter((item) => item[1] === area); }
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, (char) => {
+    if (char === "&") return "&" + "amp;";
+    if (char === "<") return "&" + "lt;";
+    if (char === ">") return "&" + "gt;";
+    if (char === '"') return "&" + "quot;";
+    return "&" + "#39;";
+  });
+}
+function shuffle(items) {
+  const copy = items.slice();
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    const current = copy[index];
+    copy[index] = copy[swap];
+    copy[swap] = current;
+  }
+  return copy;
+}
+function load() {
+  const empty = { reviewed: [], correct: {}, attempts: {}, listenCorrect: 0, listenAttempts: 0, sentences: [], canDo: [], reflection: "" };
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (!parsed || typeof parsed !== "object") return empty;
+    return Object.assign(empty, parsed);
+  } catch (error) {
+    return empty;
+  }
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+function speak(text, rate) {
+  if (!("speechSynthesis" in window)) return false;
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
+  utterance.rate = rate || 0.92;
+  const voice = synth.getVoices().find((item) => item.lang === "en-US") || synth.getVoices().find((item) => item.lang.indexOf("en") === 0);
+  if (voice) utterance.voice = voice;
+  synth.speak(utterance);
+  return true;
+}
+function gap(item) {
+  const chunk = item[2].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return item[4].replace(new RegExp(chunk, "i"), "______");
+}
+function joinSentence(left, link, right) {
+  const body = left + " " + link + " " + right;
+  return body.charAt(0).toUpperCase() + body.slice(1) + ".";
+}
+let state = load();
+let view = "home";
+let area = "salon";
+let leftId = null;
+let linkWord = null;
+let rightId = null;
+let question = null;
+function nextQuestion() {
+  const pool = inArea(area);
+  const ranked = pool.slice().sort((a, b) => ((state.correct[a[0]] || 0) * 3) - (state.attempts[a[0]] || 0) - (((state.correct[b[0]] || 0) * 3) - (state.attempts[b[0]] || 0)));
+  const band = ranked.slice(0, Math.max(3, Math.ceil(ranked.length / 2)));
+  const item = band[Math.floor(Math.random() * band.length)];
+  question = { item: item, options: shuffle([item[2]].concat(item[6])), heard: false, picked: null };
+}
+function markReviewed(id) {
+  if (state.reviewed.indexOf(id) === -1) state.reviewed.push(id);
+  save();
+}
+function answer(option) {
+  if (!question || question.picked) return;
+  question.picked = option;
+  const id = question.item[0];
+  state.attempts[id] = (state.attempts[id] || 0) + 1;
+  state.listenAttempts += 1;
+  if (option === question.item[2]) {
+    state.correct[id] = (state.correct[id] || 0) + 1;
+    state.listenCorrect += 1;
+  }
+  save();
+  render();
+}
+function saveSentence() {
+  const left = phrase(leftId);
+  const right = phrase(rightId);
+  if (!left || !right || !linkWord || left[0] === right[0]) return;
+  const text = joinSentence(left[2], linkWord, right[2]);
+  state.sentences.unshift(text);
+  state.sentences = state.sentences.slice(0, 20);
+  save();
+  speak(text, 0.92);
+  render();
+}
+function toggleCan(id) {
+  const index = state.canDo.indexOf(id);
+  if (index === -1) state.canDo.push(id);
+  else state.canDo.splice(index, 1);
+  save();
+  render();
+}
+function phraseCard(item) {
+  return '<article class="card"><p class="phrase">' + esc(item[2]) + '</p><p class="muted" style="margin:0 0 8px">' + esc(item[3]) + '</p><p class="stress">' + esc(item[5]) + '</p><p>' + esc(item[4]) + '</p><div class="row"><button class="speak" data-say="' + esc(item[2]) + '" data-id="' + esc(item[0]) + '" data-rate="0.92">Así suena</button><button class="ghost" data-say="' + esc(item[2]) + '" data-id="' + esc(item[0]) + '" data-rate="0.72">Más lento</button></div></article>';
+}
+function render() {
+  const known = PHRASES.filter((item) => (state.correct[item[0]] || 0) >= 2).length;
+  const percent = Math.round((known / PHRASES.length) * 100);
+  let html = "";
+  if (view === "home") {
+    html += '<p class="kicker">Inicio</p><h1>Frases que sí se dicen en la escuela</h1><p class="muted">No traduzcas palabra por palabra. Aprende la frase completa, óyela y úsala.</p>';
+    html += '<div class="card"><strong>' + known + ' de ' + PHRASES.length + ' frases ya te salen</strong><div class="barline" style="margin-top:10px"><span style="width:' + percent + '%"></span></div><p class="muted">Oraciones guardadas: ' + state.sentences.length + ' · Escucha: ' + state.listenCorrect + '/' + state.listenAttempts + '</p></div>';
+    html += '<div class="grid">';
+    AREAS.forEach((item) => {
+      const count = inArea(item[0]).length;
+      html += '<button class="area" data-area="' + item[0] + '"><strong>' + esc(item[1]) + '</strong><span>' + count + ' frases</span></button>';
+    });
+    html += '</div>';
+    html += '<div class="card" style="margin-top:12px"><h2>Conectores</h2><p class="muted">Sirven para unir dos frases.</p><div class="row">';
+    LINKS.forEach((item) => { html += '<span class="chip">' + esc(item[0]) + ' · ' + esc(item[1]) + '</span>'; });
+    html += '</div></div>';
+  }
+  if (view === "frases") {
+    const current = AREAS.find((item) => item[0] === area);
+    html += '<p class="kicker">Frases</p><h1>' + esc(current[1]) + '</h1><p class="muted">' + esc(current[2]) + '</p><div class="row" style="margin-bottom:12px">';
+    AREAS.forEach((item) => { html += '<button class="chip' + (item[0] === area ? ' on' : '') + '" data-area="' + item[0] + '">' + esc(item[1]) + '</button>'; });
+    html += '</div>';
+    inArea(area).forEach((item) => { html += phraseCard(item); });
+  }
+  if (view === "unir") {
+    const list = inArea(area);
+    const left = phrase(leftId);
+    const right = phrase(rightId);
+    const same = left && right && left[0] === right[0];
+    const ready = left && right && linkWord && !same;
+    html += '<p class="kicker">Práctica</p><h1>Une dos frases</h1><p class="muted">Elige una frase, un conector y otra frase distinta.</p><div class="row" style="margin-bottom:12px">';
+    AREAS.forEach((item) => { html += '<button class="chip' + (item[0] === area ? ' on' : '') + '" data-area="' + item[0] + '">' + esc(item[1]) + '</button>'; });
+    html += '</div><div class="card"><h2>1. Primera frase</h2><div class="row">';
+    list.forEach((item) => { html += '<button class="chip' + (item[0] === leftId ? ' on' : '') + '" data-left="' + item[0] + '">' + esc(item[2]) + '</button>'; });
+    html += '</div></div><div class="card"><h2>2. Conector</h2><div class="row">';
+    LINKS.forEach((item) => { html += '<button class="chip' + (item[0] === linkWord ? ' on' : '') + '" data-link="' + esc(item[0]) + '">' + esc(item[0]) + '</button>'; });
+    html += '</div></div><div class="card"><h2>3. Segunda frase</h2><div class="row">';
+    list.forEach((item) => { html += '<button class="chip' + (item[0] === rightId ? ' on' : '') + '" data-right="' + item[0] + '">' + esc(item[2]) + '</button>'; });
+    html += '</div></div>';
+    if (same) html += '<p class="card">Elige dos frases distintas.</p>';
+    else if (ready) html += '<div class="card"><p class="phrase">' + esc(joinSentence(left[2], linkWord, right[2])) + '</p><div class="row"><button class="speak" id="hear-join">Así suena</button><button class="primary" id="save-join">Guardar oración</button></div></div>';
+  }
+  if (view === "oir") {
+    if (!question) nextQuestion();
+    const item = question.item;
+    html += '<p class="kicker">Escucha</p><h1>Completa lo que oyes</h1><p class="muted">Pulsa el botón rojo, escucha y elige la frase que sí se dijo.</p>';
+    html += '<div class="card"><button class="speak" id="hear-gap">Así suena</button><p style="font-size:20px;font-weight:700">' + esc(question.heard ? gap(item) : "Primero escucha la oración.") + '</p></div>';
+    if (question.heard) {
+      question.options.forEach((option) => {
+        let cls = "option";
+        if (question.picked) cls += option === item[2] ? " good" : option === question.picked ? " bad" : "";
+        html += '<button class="' + cls + '" data-option="' + esc(option) + '" style="display:block;width:100%;text-align:left;margin:0 0 8px;border-radius:14px">' + esc(option) + '</button>';
+      });
+      if (question.picked) {
+        const ok = question.picked === item[2];
+        html += '<div class="card"><strong>' + (ok ? "Esa frase sí se dice." : "Esa es una traducción literal. La frase es: " + esc(item[2])) + '</strong><p class="muted">' + esc(item[3]) + '</p><button class="primary" id="next-q">Otra</button></div>';
+      }
+    }
+  }
+  if (view === "yo") {
+    html += '<p class="kicker">Yo</p><h1>Lo que ya puedo hacer</h1><p class="muted">Marca solo lo que de verdad puedes hacer hoy.</p><div class="card">';
+    CAN.forEach((item) => {
+      const on = state.canDo.indexOf(item[0]) !== -1;
+      html += '<label class="check"><input type="checkbox" data-can="' + item[0] + '"' + (on ? " checked" : "") + '> <span>' + esc(item[1]) + '</span></label>';
+    });
+    html += '</div><div class="card"><h2>' + known + ' frases firmes</h2><p class="muted">Una frase está firme cuando la eliges bien dos veces en Oír. Revisadas: ' + state.reviewed.length + '.</p></div>';
+    html += '<div class="card"><h2>Oraciones que armé</h2>';
+    if (!state.sentences.length) html += '<p class="muted">Todavía no guardas ninguna. Ve a Unir.</p>';
+    state.sentences.forEach((text) => { html += '<p><button class="ghost" data-say="' + esc(text) + '">Así suena</button> ' + esc(text) + '</p>'; });
+    html += '</div><div class="card"><h2>Mi nota</h2><textarea id="note" placeholder="Hoy pude decir...">' + esc(state.reflection) + '</textarea></div>';
+  }
+  document.getElementById("app").innerHTML = html;
+  document.getElementById("nav").innerHTML = TABS.map((tab) => '<button type="button" data-view="' + tab[0] + '" class="' + (view === tab[0] ? "on" : "") + '">' + tab[1] + '</button>').join("");
+}
+document.body.addEventListener("click", (event) => {
+  const target = event.target.closest("button");
+  if (!target) return;
+  if (target.dataset.view) { view = target.dataset.view; if (view === "oir" && !question) nextQuestion(); render(); return; }
+  if (target.dataset.area) {
+    area = target.dataset.area;
+    leftId = null; rightId = null; linkWord = null; question = null;
+    if (view === "home") view = "frases";
+    render();
+    return;
+  }
+  if (target.dataset.say) {
+    speak(target.dataset.say, Number(target.dataset.rate || 0.92));
+    if (target.dataset.id) { markReviewed(target.dataset.id); }
+    return;
+  }
+  if (target.dataset.left) { leftId = target.dataset.left; render(); return; }
+  if (target.dataset.right) { rightId = target.dataset.right; render(); return; }
+  if (target.dataset.link) { linkWord = target.dataset.link; render(); return; }
+  if (target.id === "hear-join") { const left = phrase(leftId); const right = phrase(rightId); speak(joinSentence(left[2], linkWord, right[2]), 0.92); return; }
+  if (target.id === "save-join") { saveSentence(); return; }
+  if (target.id === "hear-gap") { question.heard = true; speak(question.item[4], 0.92); markReviewed(question.item[0]); render(); return; }
+  if (target.dataset.option) { answer(target.dataset.option); return; }
+  if (target.id === "next-q") { nextQuestion(); render(); }
+});
+document.body.addEventListener("change", (event) => {
+  const box = event.target.closest("[data-can]");
+  if (box) toggleCan(box.dataset.can);
+});
+document.body.addEventListener("input", (event) => {
+  if (event.target.id === "note") { state.reflection = event.target.value; save(); }
+});
+if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = () => {};
+render();
+</script>
+</body>
+</html>
